@@ -17,6 +17,7 @@ use std::process;
 const DEFAULT_TIMEOUT: u8 = 5;
 
 static BIN_NAME: &'static str = env!("CARGO_PKG_NAME");
+static ENV_VAR_NAME: &'static str = concat!(env!("CARGO_PKG_NAME"), "_DEFAULTS");
 static USAGE: &'static str = "
 Usage:
     BIN_NAME [options] [<command>] [<entry>]
@@ -38,14 +39,14 @@ Options:
     -V, --version
 
 Environment variables:
-    KPASS_DEFAULTS              Set default arguments (see examples).
+    ENV_VAR_NAME                 Set default arguments (see examples).
 
 Examples:
     Open a database and copy password to the clipboard after selection:
       $ BIN_NAME -d/root/secrets.kdbx
 
     Set default database, secret file and options via environment variable:
-      KPASS_DEFAULTS=\"-d$HOME/my.kdbx -k$HOME/.secret -gt10\"
+      export ENV_VAR_NAME=\"-d$HOME/my.kdbx -k$HOME/.secret -gt10\"
 
     Display selector and then print entry's info:
       $ BIN_NAME show
@@ -101,7 +102,7 @@ struct Args {
 
 impl Args {
     fn from_env(dopt: &Docopt) -> Args {
-        let env_var = env::var("KPASS_DEFAULTS").unwrap_or_default();
+        let env_var = env::var(&ENV_VAR_NAME.to_uppercase()).unwrap_or_default();
 
         let mut argv = "BIN_NAME clip ".to_string();
         argv.push_str(env_var.as_str().trim());
@@ -110,7 +111,7 @@ impl Args {
         dopt.argv(argv.split(' '))
             .deserialize()
             .unwrap_or_else(|_| {
-                werr!("Invalid arguments in KPASS_DEFAULTS.");
+                werr!("Invalid arguments in {}.", &ENV_VAR_NAME.to_uppercase());
                 process::exit(1);
             })
     }
@@ -128,6 +129,7 @@ impl Args {
 fn get_args() -> Args {
     let usage = USAGE
         .replace("DEFAULT_TIMEOUT", &DEFAULT_TIMEOUT.to_string())
+        .replace("ENV_VAR_NAME", &ENV_VAR_NAME.to_uppercase())
         .replace("BIN_NAME", BIN_NAME);
 
     let dopt = Docopt::new(usage).unwrap_or_else(|e| e.exit());
