@@ -5,6 +5,8 @@ use skim::{Skim, SkimOptions};
 
 use log::*;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 
 #[macro_export]
@@ -41,9 +43,11 @@ macro_rules! fail {
     };
 }
 
-pub fn get_pwd() -> Option<String> {
+pub fn get_pwd(filename: &str) -> Option<String> {
+    let mut hasher = DefaultHasher::new();
+    filename.hash(&mut hasher);
     let service = format!("{}.keepass.cli.tool", crate::BIN_NAME);
-    let username = "";
+    let username = format!("{}", hasher.finish());
     let keyring = Keyring::new(&service, &username);
 
     if let Ok(pwd) = keyring.get_password() {
