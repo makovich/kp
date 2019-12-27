@@ -19,6 +19,9 @@ const DEFAULT_TIMEOUT: u8 = 5;
 static BIN_NAME: &'static str = env!("CARGO_PKG_NAME");
 static ENV_VAR_NAME: &'static str = concat!(env!("CARGO_PKG_NAME"), "_DEFAULTS");
 static USAGE: &'static str = "
+BIN_NAME BIN_VERSION
+    KeePass KDBX4 password reader.
+
 Usage:
     BIN_NAME [options] [<command>] [<entry>]
     BIN_NAME --help
@@ -130,7 +133,8 @@ fn get_args() -> Args {
     let usage = USAGE
         .replace("DEFAULT_TIMEOUT", &DEFAULT_TIMEOUT.to_string())
         .replace("ENV_VAR_NAME", &ENV_VAR_NAME.to_uppercase())
-        .replace("BIN_NAME", BIN_NAME);
+        .replace("BIN_NAME", BIN_NAME)
+        .replace("BIN_VERSION", &version());
 
     let dopt = Docopt::new(usage).unwrap_or_else(|e| e.exit());
 
