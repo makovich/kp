@@ -1,3 +1,4 @@
+use atty::Stream::Stdin;
 use kdbx4::Entry;
 use keyring::Keyring;
 use rpassword::read_password_from_tty;
@@ -43,25 +44,44 @@ macro_rules! fail {
     };
 }
 
-pub fn get_pwd(filename: &str) -> Option<String> {
-    let mut hasher = DefaultHasher::new();
-    filename.hash(&mut hasher);
-    let service = format!("{}.keepass.cli.tool", crate::BIN_NAME);
-    let username = format!("{}", hasher.finish());
-    let keyring = Keyring::new(&service, &username);
+pub fn get_pwd(filename: &str, force: bool) -> Option<String> {
+    if atty::isnt(Stdin) {
+        use std::io::Read;
+        let mut pwd = String::new();
+        std::io::stdin()
+            .read_to_string(&mut pwd)
+            .expect("Can't read password from STDIN.");
 
-    if let Ok(pwd) = keyring.get_password() {
-        debug!("using password from keyring ({})", service);
         return Some(pwd);
     }
 
-    let pwd = read_password_from_tty(Some("Password:")).ok().unwrap();
+    let (service, username) = create_from(filename);
+    let keyring = Keyring::new(&service, &username);
+
+    if !force {
+        if let Ok(pwd) = keyring.get_password() {
+            debug!("using password from keyring ({})", service);
+            return Some(pwd);
+        }
+    }
+
+    let pwd = read_password_from_tty(Some("Password:")).unwrap();
 
     if keyring.set_password(&pwd).is_err() {
         warn!("unable to store the password in keyring");
     }
 
     Some(pwd)
+}
+
+fn create_from(filename: &str) -> (String, String) {
+    let mut hasher = DefaultHasher::new();
+    filename.hash(&mut hasher);
+
+    let service = format!("{}.keepass.cli.tool", crate::BIN_NAME);
+    let username = format!("{}", hasher.finish());
+
+    (service, username)
 }
 
 pub fn skim<'a>(

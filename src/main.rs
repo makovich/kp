@@ -35,6 +35,7 @@ Commands:
 Options:
     -d, --database <file>       KDBX file path.
     -k, --key-file <keyfile>    Path to the key file unlocking the database.
+    -P, --ask-password          Request password even if it already stored in the keyring.
     -G, --no-group              Show entries without group(s).
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
                                 Default to DEFAULT_TIMEOUT seconds. 0 means no clean-up.
@@ -62,6 +63,9 @@ Examples:
 
     Print password to STDOUT:
       $ BIN_NAME github.com | cat
+
+    Read password from STDIN:
+      $ cat /mnt/usb/key | kp
 ";
 
 type CliResult = Result<(), Box<dyn error::Error>>;
@@ -97,6 +101,7 @@ struct Args {
     arg_entry: Option<String>,
     flag_timeout: Option<u8>,
     flag_no_group: bool,
+    flag_ask_password: bool,
     flag_database: Option<String>,
     flag_key_file: Option<String>,
     flag_help: bool,
