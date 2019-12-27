@@ -19,7 +19,7 @@ pub(super) fn run(args: Args) -> CliResult {
         }
     }
 
-    if let Some(entry) = utils::skim(&db.entries(), query, args.flag_group) {
+    if let Some(entry) = utils::skim(&db.entries(), query, args.flag_no_group) {
         wout!("-----");
         put!("{}", entry);
         wout!("-----");

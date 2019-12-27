@@ -67,7 +67,7 @@ pub fn get_pwd(filename: &str) -> Option<String> {
 pub fn skim<'a>(
     entries: &'a [Entry<'a>],
     query: Option<&'a str>,
-    show_group: bool,
+    hide_groups: bool,
 ) -> Option<&'a Entry<'a>> {
     let opts = SkimOptions {
         multi: true,
@@ -79,8 +79,8 @@ pub fn skim<'a>(
             "ctrl-l:ignore", // clear screen
             "ctrl-r:ignore", // rotate mode
         ],
-        delimiter: if show_group { Some("/") } else { None },
-        nth: if show_group { Some("-1") } else { None },
+        delimiter: if hide_groups { None } else { Some("/") },
+        nth: if hide_groups { Some("-1") } else { None },
 
         ..SkimOptions::default()
     };
@@ -88,10 +88,10 @@ pub fn skim<'a>(
     let input = entries
         .iter()
         .map(|e| {
-            if show_group {
-                format!("/{}/{}", e.group(), e.title())
-            } else {
+            if hide_groups {
                 e.title().to_string()
+            } else {
+                format!("/{}/{}", e.group(), e.title())
             }
         })
         .collect::<Vec<String>>()

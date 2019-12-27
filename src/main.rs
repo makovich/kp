@@ -32,7 +32,7 @@ Commands:
 Options:
     -d, --database <file>       KDBX file path.
     -k, --key-file <keyfile>    Path to the key file unlocking the database.
-    -g, --group                 Show entries with group(s).
+    -G, --no-group              Show entries without group(s).
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
                                 Default to DEFAULT_TIMEOUT seconds. 0 means no clean-up.
     -h, --help
@@ -46,7 +46,7 @@ Examples:
       $ BIN_NAME -d/root/secrets.kdbx
 
     Set default database, secret file and options via environment variable:
-      export ENV_VAR_NAME=\"-d$HOME/my.kdbx -k$HOME/.secret -gt10\"
+      export ENV_VAR_NAME=\"-d$HOME/my.kdbx -k$HOME/.secret -Gt10\"
 
     Display selector and then print entry's info:
       $ BIN_NAME show
@@ -93,7 +93,7 @@ struct Args {
     arg_command: Command,
     arg_entry: Option<String>,
     flag_timeout: Option<u8>,
-    flag_group: bool,
+    flag_no_group: bool,
     flag_database: Option<String>,
     flag_key_file: Option<String>,
     flag_help: bool,
@@ -161,7 +161,7 @@ fn get_args() -> Args {
         .or(Some(DEFAULT_TIMEOUT))
         .filter(|&t| t != 0);
 
-    cmd.flag_group |= env.flag_group;
+    cmd.flag_no_group |= env.flag_no_group;
     cmd.flag_key_file = cmd.flag_key_file.or(env.flag_key_file);
     cmd.flag_database = cmd.flag_database.or(env.flag_database).or_else(|| {
         werr!("No database file path were not found. Use `--help` to get more info.");
