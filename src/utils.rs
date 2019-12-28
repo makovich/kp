@@ -6,8 +6,6 @@ use skim::{Skim, SkimOptions};
 
 use log::*;
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 
 #[macro_export]
@@ -75,13 +73,19 @@ pub fn get_pwd(filename: &str, force: bool) -> Option<String> {
 }
 
 fn create_from(filename: &str) -> (String, String) {
-    let mut hasher = DefaultHasher::new();
-    filename.hash(&mut hasher);
-
     let service = format!("{}.keepass.cli.tool", crate::BIN_NAME);
-    let username = format!("{}", hasher.finish());
+    let username = format!("{}", hash(filename));
 
     (service, username)
+}
+
+fn hash(data: &str) -> u64 {
+    use std::ops::BitXor;
+
+    // djb2 hash function
+    data.as_bytes()
+        .iter()
+        .fold(1153, |acc, &chr| acc.wrapping_mul(33).bitxor(chr as u64))
 }
 
 pub fn skim<'a>(
