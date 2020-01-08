@@ -1,12 +1,11 @@
-use atty::Stream::Stdin;
-use kdbx4::Entry;
+use crate::STDIN;
+
+use clipboard::{ClipboardContext, ClipboardProvider};
+use kdbx4::{CompositeKey, Database, Entry, Kdbx4, KdbxResult};
 use keyring::Keyring;
-use rpassword::read_password_from_tty;
 use skim::{Skim, SkimOptions};
 
 use log::*;
-
-use std::io::Cursor;
 
 #[macro_export]
 macro_rules! put {
@@ -42,34 +41,59 @@ macro_rules! fail {
     };
 }
 
-pub fn get_pwd(filename: &str, force: bool) -> Option<String> {
-    if atty::isnt(Stdin) {
-        use std::io::Read;
-        let mut pwd = String::new();
-        std::io::stdin()
-            .read_to_string(&mut pwd)
-            .expect("Can't read password from STDIN.");
+pub fn open_database(
+    path: Option<String>,
+    keyfile: Option<String>,
+    use_keyring: bool,
+) -> KdbxResult<Database> {
+    let dbfile = path.unwrap();
 
-        return Some(pwd);
+    if !STDIN.is_tty() {
+        let pwd = STDIN.read_password();
+        let key = CompositeKey::new(Some(pwd), keyfile)?;
+        return Kdbx4::open(dbfile, key);
     }
 
-    let (service, username) = create_from(filename);
+    let (service, username) = create_from(&dbfile);
     let keyring = Keyring::new(&service, &username);
 
-    if !force {
+    if use_keyring {
         if let Ok(pwd) = keyring.get_password() {
-            debug!("using password from keyring ({})", service);
-            return Some(pwd);
+            debug!("using password from keyring ({}/{})", service, username);
+
+            let key = CompositeKey::new(Some(pwd), keyfile.as_ref())?;
+            let db = Kdbx4::open(&dbfile, key);
+            if db.is_ok() {
+                return db;
+            }
+
+            warn!("wrong password in the keyring");
+            let _ = keyring.delete_password();
         }
     }
 
-    let pwd = read_password_from_tty(Some("Password:")).unwrap();
+    let mut att = 3;
+    loop {
+        put!("Password:");
 
-    if keyring.set_password(&pwd).is_err() {
-        warn!("unable to store the password in keyring");
+        let pwd = STDIN.read_password();
+        let key = CompositeKey::new(Some(&pwd), keyfile.as_ref())?;
+        let db = Kdbx4::open(&dbfile, key);
+
+        if db.is_ok() {
+            if use_keyring && keyring.set_password(pwd.as_ref()).is_err() {
+                warn!("unable to store the password in keyring");
+            }
+        }
+
+        att -= 1;
+
+        if db.is_ok() || att == 0 {
+            break db;
+        }
+
+        wout!("{} attempt(s) left.", att);
     }
-
-    Some(pwd)
 }
 
 fn create_from(filename: &str) -> (String, String) {
@@ -121,7 +145,7 @@ pub fn skim<'a>(
         .collect::<Vec<String>>()
         .join("\n");
 
-    let result = Skim::run_with(&opts, Some(Box::new(Cursor::new(input))))
+    let result = Skim::run_with(&opts, Some(Box::new(::std::io::Cursor::new(input))))
         .map(|o| o.selected_items)
         .unwrap_or_else(Vec::new);
 
@@ -129,5 +153,14 @@ pub fn skim<'a>(
         Some(&entries[item.get_index()])
     } else {
         None
+    }
+}
+
+pub fn set_clipboard(val: Option<String>) {
+    let ctx: Option<ClipboardContext> = ClipboardProvider::new().ok();
+    if let Some(mut clip) = ctx {
+        if clip.set_contents(val.unwrap_or_default()).is_err() {
+            warn!("could not set the clipboard")
+        }
     }
 }

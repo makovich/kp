@@ -1,16 +1,12 @@
-use crate::utils;
-use crate::Args;
-use crate::CliResult;
-
-use kdbx4::{CompositeKey, Kdbx4};
+use crate::{utils, Args, CliResult};
 
 pub(super) fn run(args: Args) -> CliResult {
-    let file = args.flag_database.unwrap();
-    let key = CompositeKey::new(
-        utils::get_pwd(&file, args.flag_ask_password),
+    let db = utils::open_database(
+        args.flag_database,
         args.flag_key_file,
+        args.flag_use_keyring,
     )?;
-    let db = Kdbx4::open(file, key)?;
+
     let query = args.arg_entry.as_ref().map(String::as_ref);
 
     if let Some(query) = query {

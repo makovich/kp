@@ -2,23 +2,23 @@
 mod utils;
 mod clip;
 mod show;
+mod stdin;
 
 use docopt::Docopt;
+use once_cell::sync::Lazy;
 use serde::de::{Deserialize, Deserializer, Error, Visitor};
 use serde_derive::Deserialize;
 
 use log::*;
 
-use std::env;
-use std::error;
-use std::fmt;
-use std::process;
+use std::{env, error, fmt, process, sync::atomic, thread, time};
 
-const DEFAULT_TIMEOUT: u8 = 5;
+const DEFAULT_TIMEOUT: u8 = 5; // 5 seconds
+const CANCEL_RQ_FREQ: u64 = 10; // ten times in a second
 
-static BIN_NAME: &'static str = env!("CARGO_PKG_NAME");
-static ENV_VAR_NAME: &'static str = concat!(env!("CARGO_PKG_NAME"), "_DEFAULTS");
-static USAGE: &'static str = "
+static BIN_NAME: &str = env!("CARGO_PKG_NAME");
+static ENV_VAR_NAME: &str = concat!(env!("CARGO_PKG_NAME"), "_DEFAULTS");
+static USAGE: &str = "
 BIN_NAME BIN_VERSION
     KeePass KDBX4 password reader.
 
@@ -35,7 +35,7 @@ Commands:
 Options:
     -d, --database <file>       KDBX file path.
     -k, --key-file <keyfile>    Path to the key file unlocking the database.
-    -P, --ask-password          Request password even if it already stored in the keyring.
+    -p, --use-keyring           Store password for the database in the OS's keyring.
     -G, --no-group              Show entries without group(s).
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
                                 Default to DEFAULT_TIMEOUT seconds. 0 means no clean-up.
@@ -47,10 +47,10 @@ Environment variables:
 
 Examples:
     Open a database and copy password to the clipboard after selection:
-      $ BIN_NAME -d/root/secrets.kdbx
+      $ BIN_NAME --database /root/secrets.kdbx
 
     Set default database, secret file and options via environment variable:
-      export ENV_VAR_NAME=\"-d$HOME/my.kdbx -k$HOME/.secret -Gt10\"
+      export ENV_VAR_NAME=\"-d$HOME/my.kdbx -k$HOME/.secret -pGt7\"
 
     Display selector and then print entry's info:
       $ BIN_NAME show
@@ -68,10 +68,15 @@ Examples:
       $ cat /mnt/usb/key | kp
 ";
 
+static CANCEL: atomic::AtomicBool = atomic::AtomicBool::new(false);
+static STDIN: Lazy<stdin::Stdin> = Lazy::new(|| stdin::Stdin::new());
+
 type CliResult = Result<(), Box<dyn error::Error>>;
 
 fn main() {
     env_logger::init();
+
+    set_ctrlc_handler();
 
     let args = get_args();
 
@@ -101,7 +106,7 @@ struct Args {
     arg_entry: Option<String>,
     flag_timeout: Option<u8>,
     flag_no_group: bool,
-    flag_ask_password: bool,
+    flag_use_keyring: bool,
     flag_database: Option<String>,
     flag_key_file: Option<String>,
     flag_help: bool,
@@ -170,6 +175,7 @@ fn get_args() -> Args {
         .or(Some(DEFAULT_TIMEOUT))
         .filter(|&t| t != 0);
 
+    cmd.flag_use_keyring |= env.flag_use_keyring;
     cmd.flag_no_group |= env.flag_no_group;
     cmd.flag_key_file = cmd.flag_key_file.or(env.flag_key_file);
     cmd.flag_database = cmd.flag_database.or(env.flag_database).or_else(|| {
@@ -179,6 +185,21 @@ fn get_args() -> Args {
 
     debug!("merged: {:#?}", cmd);
     cmd
+}
+
+fn set_ctrlc_handler() {
+    if let Err(e) = ctrlc::set_handler(|| {
+        CANCEL.store(true, atomic::Ordering::SeqCst);
+        STDIN.reset_tty();
+
+        // allow gracefully finish any cancellable loop
+        thread::sleep(time::Duration::from_millis(2 * 1_000 / CANCEL_RQ_FREQ));
+
+        utils::set_clipboard(None);
+        process::exit(1);
+    }) {
+        warn!("unable to setup Ctrl+C handler: {}", e);
+    }
 }
 
 fn version() -> String {
