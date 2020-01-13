@@ -17,9 +17,4 @@ once_cell = "1.2"
 serde = "1.0"
 serde_derive = "1.0"
 skim = "0.6.9"
-
-[target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["std", "winnt", "fileapi", "processenv", "winbase", "handleapi", "consoleapi", "minwindef", "wincon"] }

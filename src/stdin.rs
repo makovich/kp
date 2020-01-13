@@ -1,3 +1,5 @@
+use libc::{isatty, tcgetattr, tcsetattr, ECHO, ECHONL, STDIN_FILENO, TCSANOW};
+
 use log::*;
 
 use std::io::{self, Read};
@@ -19,11 +21,7 @@ impl Drop for Pwd {
     }
 }
 
-#[cfg(unix)]
 pub struct Stdin(Option<libc::termios>);
-
-#[cfg(windows)]
-pub struct Stdin(winapi::shared::minwindef::DWORD);
 
 impl Drop for Stdin {
     fn drop(&mut self) {
@@ -33,7 +31,7 @@ impl Drop for Stdin {
 
 impl Stdin {
     pub fn new() -> Self {
-        new_internal().unwrap_or_else(|e| {
+        new_impl().unwrap_or_else(|e| {
             warn!("platform API call error: {}", e);
             Stdin(None)
         })
@@ -51,34 +49,11 @@ impl Stdin {
 
     pub fn reset_tty(&self) {
         info!("resetting TTY params");
-        reset_internal(self.0);
+        reset_impl(self.0);
     }
 }
 
-#[cfg(unix)]
-fn reset_internal(termios: Option<libc::termios>) {
-    use libc::{tcsetattr, STDIN_FILENO, TCSANOW};
-
-    if let Some(termios) = termios {
-        unsafe { tcsetattr(STDIN_FILENO, TCSANOW, &termios) };
-    }
-}
-
-#[cfg(windows)]
-fn reset_internal(mode: Option<winapi::shared::minwindef::DWORD>) {
-    use winapi::um::consoleapi::SetConsoleMode;
-    use winapi::um::processenv::GetStdHandle;
-    use winapi::um::winbase::STD_INPUT_HANDLE;
-
-    if let Some(mode) = mode {
-        unsafe { SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), mode) }
-    }
-}
-
-#[cfg(unix)]
-fn new_internal() -> ::std::io::Result<Stdin> {
-    use libc::{isatty, tcgetattr, STDIN_FILENO};
-
+fn new_impl() -> ::std::io::Result<Stdin> {
     unsafe {
         let mut termios = MaybeUninit::uninit();
 
@@ -94,20 +69,7 @@ fn new_internal() -> ::std::io::Result<Stdin> {
     Err(io::Error::last_os_error())
 }
 
-#[cfg(windows)]
-fn new_internal() -> ::std::io::Result<Stdin> {
-    use winapi::um::processenv::GetStdHandle;
-    use winapi::um::winbase::STD_INPUT_HANDLE;
-
-    let handle = unsafe { GetStdHandle(STD_INPUT_HANDLE) };
-
-    Ok(Stdin(None))
-}
-
-#[cfg(unix)]
 fn read_password(tty: Option<libc::termios>) -> ::std::io::Result<String> {
-    use libc::{tcsetattr, ECHO, ECHONL, STDIN_FILENO, TCSANOW};
-
     let mut password = String::new();
 
     if let Some(mut termios) = tty {
@@ -127,6 +89,12 @@ fn read_password(tty: Option<libc::termios>) -> ::std::io::Result<String> {
     trim_newlines(&mut password);
 
     Ok(password)
+}
+
+fn reset_impl(termios: Option<libc::termios>) {
+    if let Some(termios) = termios {
+        unsafe { tcsetattr(STDIN_FILENO, TCSANOW, &termios) };
+    }
 }
 
 fn trim_newlines(password: &mut String) {
