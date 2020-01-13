@@ -162,5 +162,7 @@ pub fn set_clipboard(val: Option<String>) {
         if clip.set_contents(val.unwrap_or_default()).is_err() {
             warn!("could not set the clipboard")
         }
+    } else if val.is_some() {
+        werr!("Could not copy to the clipboard. Try to use standard out stream (kp clip example.com | cat).");
     }
 }
