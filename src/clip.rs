@@ -28,10 +28,7 @@ pub(super) fn run(args: Args) -> CliResult {
     // If more than a single match has been found and stdout is not a TTY
     // than it is not possible to pick the right entry without user's interaction
     if !STDIN.is_tty() {
-        return Err(From::from(format!(
-            "No single match for {}.",
-            query.unwrap_or("[empty]")
-        )));
+        return Err(format!("No single match for {}.", query.unwrap_or("[empty]")).into());
     }
 
     if let Some(entry) = utils::skim(&db.entries(), query, args.flag_no_group) {
@@ -43,7 +40,10 @@ pub(super) fn run(args: Args) -> CliResult {
 
 fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> CliResult {
     let pwd = entry.password()?;
-    utils::set_clipboard(Some(pwd));
+
+    if utils::set_clipboard(Some(pwd)).is_err() {
+        return Err("Could not copy to the clipboard. Try to use standard out, i.e. \"kp clip example.com | cat\".".into());
+    }
 
     if timeout.is_none() {
         debug!("user decided to leave the password in the buffer");
@@ -66,7 +66,7 @@ fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> CliResult {
         ticks -= 1;
     }
 
-    utils::set_clipboard(None);
+    let _ = utils::set_clipboard(None);
     wout!("{:50}", "Wiped out");
 
     return Ok(());

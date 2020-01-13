@@ -156,13 +156,11 @@ pub fn skim<'a>(
     }
 }
 
-pub fn set_clipboard(val: Option<String>) {
-    let ctx: Option<ClipboardContext> = ClipboardProvider::new().ok();
-    if let Some(mut clip) = ctx {
-        if clip.set_contents(val.unwrap_or_default()).is_err() {
-            warn!("could not set the clipboard")
-        }
-    } else if val.is_some() {
-        werr!("Could not copy to the clipboard. Try to use standard out stream (kp clip example.com | cat).");
-    }
+pub fn set_clipboard(val: Option<String>) -> Result<(), Box<std::error::Error>> {
+    ClipboardProvider::new()
+        .and_then(|mut ctx: ClipboardContext| ctx.set_contents(val.unwrap_or_default()))
+        .map_err(|e| {
+            warn!("could not set the clipboard: {}", e);
+            e
+        })
 }

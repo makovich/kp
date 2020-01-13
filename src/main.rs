@@ -195,7 +195,7 @@ fn set_ctrlc_handler() {
         // allow gracefully finish any cancellable loop
         thread::sleep(time::Duration::from_millis(2 * 1_000 / CANCEL_RQ_FREQ));
 
-        utils::set_clipboard(None);
+        let _ = utils::set_clipboard(None);
         process::exit(1);
     }) {
         warn!("unable to setup Ctrl+C handler: {}", e);
