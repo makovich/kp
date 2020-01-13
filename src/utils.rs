@@ -156,7 +156,7 @@ pub fn skim<'a>(
     }
 }
 
-pub fn set_clipboard(val: Option<String>) -> Result<(), Box<std::error::Error>> {
+pub fn set_clipboard(val: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
     ClipboardProvider::new()
         .and_then(|mut ctx: ClipboardContext| ctx.set_contents(val.unwrap_or_default()))
         .map_err(|e| {
