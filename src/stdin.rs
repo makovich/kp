@@ -1,25 +1,11 @@
+use crate::pwd::Pwd;
+
 use libc::{isatty, tcgetattr, tcsetattr, ECHO, ECHONL, STDIN_FILENO, TCSANOW};
 
 use log::*;
 
 use std::io::{self, Read};
 use std::mem::MaybeUninit;
-use std::{ptr, sync::atomic};
-
-pub struct Pwd(String);
-
-impl AsRef<str> for Pwd {
-    fn as_ref(&self) -> &str {
-        self.0.as_ref()
-    }
-}
-
-impl Drop for Pwd {
-    fn drop(&mut self) {
-        info!("zeroing password memory");
-        zero_memory(&mut self.0)
-    }
-}
 
 pub struct Stdin(Option<libc::termios>);
 
@@ -42,9 +28,9 @@ impl Stdin {
     }
 
     pub fn read_password(&self) -> Pwd {
-        let pwd = read_password(self.0).unwrap();
+        let pwd = read_password(self.0).unwrap().into();
         self.reset_tty();
-        Pwd(pwd)
+        pwd
     }
 
     pub fn reset_tty(&self) {
@@ -101,15 +87,4 @@ fn trim_newlines(password: &mut String) {
     while password.ends_with(['\n', '\r'].as_ref()) {
         password.pop();
     }
-}
-
-fn zero_memory(s: &mut String) {
-    let default = u8::default();
-
-    for c in unsafe { s.as_bytes_mut() } {
-        unsafe { ptr::write_volatile(c, default) };
-    }
-
-    atomic::fence(atomic::Ordering::SeqCst);
-    atomic::compiler_fence(atomic::Ordering::SeqCst);
 }

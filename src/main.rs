@@ -1,6 +1,8 @@
 #[macro_use]
 mod utils;
 mod clip;
+mod keyring;
+mod pwd;
 mod show;
 mod stdin;
 
@@ -11,7 +13,7 @@ use serde_derive::Deserialize;
 
 use log::*;
 
-use std::{env, error, fmt, process, sync::atomic, thread, time};
+use std::{env, error, fmt, process, result, sync::atomic, thread, time};
 
 const DEFAULT_TIMEOUT: u8 = 5; // 5 seconds
 const CANCEL_RQ_FREQ: u64 = 10; // ten times in a second
@@ -71,7 +73,7 @@ Examples:
 static CANCEL: atomic::AtomicBool = atomic::AtomicBool::new(false);
 static STDIN: Lazy<stdin::Stdin> = Lazy::new(|| stdin::Stdin::new());
 
-type CliResult = Result<(), Box<dyn error::Error>>;
+type Result<T> = result::Result<T, Box<dyn error::Error>>;
 
 fn main() {
     env_logger::init();
@@ -83,10 +85,9 @@ fn main() {
     if let Err(err) = match args.arg_command {
         Command::Clip => clip::run(args),
         Command::Show => show::run(args),
-        Command::Unknown(cmd) => fail!(format!(
-            "Unknown command `{}`. Use `--help` to get more info.",
-            cmd
-        )),
+        Command::Unknown(cmd) => {
+            Err(format!("Unknown command `{}`. Use `--help` to get more info.", cmd).into())
+        }
     } {
         werr!("{}", err);
         process::exit(1);
@@ -223,7 +224,7 @@ impl<'de> Visitor<'de> for CommandVisitor {
         formatter.write_str("`clip` or `show` commands")
     }
 
-    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, s: &str) -> result::Result<Self::Value, E>
     where
         E: Error,
     {
@@ -236,7 +237,7 @@ impl<'de> Visitor<'de> for CommandVisitor {
 }
 
 impl<'de> Deserialize<'de> for Command {
-    fn deserialize<D>(d: D) -> Result<Command, D::Error>
+    fn deserialize<D>(d: D) -> result::Result<Command, D::Error>
     where
         D: Deserializer<'de>,
     {

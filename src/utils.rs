@@ -1,8 +1,9 @@
+use crate::keyring::Keyring;
+use crate::Result;
 use crate::STDIN;
 
 use clipboard::{ClipboardContext, ClipboardProvider};
-use kdbx4::{CompositeKey, Database, Entry, Kdbx4, KdbxResult};
-use keyring::Keyring;
+use kdbx4::{CompositeKey, Database, Entry, Kdbx4};
 use skim::{Skim, SkimOptions};
 
 use log::*;
@@ -11,10 +12,8 @@ use log::*;
 macro_rules! put {
     ($($arg:tt)*) => {
         use std::io::Write;
-        let stdout = ::std::io::stdout();
-        let mut handle = stdout.lock();
-        let _ = write!(&mut handle, $($arg)*);
-        let _ = handle.flush();
+        let _ = write!(&mut ::std::io::stdout(), $($arg)*);
+        let _ = ::std::io::stdout().flush();
     };
 }
 
@@ -22,7 +21,8 @@ macro_rules! put {
 macro_rules! wout {
     ($($arg:tt)*) => ({
         use std::io::Write;
-        (writeln!(&mut ::std::io::stdout(), $($arg)*)).unwrap();
+        let _ = writeln!(&mut ::std::io::stdout(), $($arg)*);
+        let _ = ::std::io::stdout().flush();
     });
 }
 
@@ -30,41 +30,35 @@ macro_rules! wout {
 macro_rules! werr {
     ($($arg:tt)*) => ({
         use std::io::Write;
-        (writeln!(&mut ::std::io::stderr(), $($arg)*)).unwrap();
+        let _ = writeln!(&mut ::std::io::stderr(), $($arg)*);
+        let _ = ::std::io::stderr().flush();
     });
-}
-
-#[macro_export]
-macro_rules! fail {
-    ($e:expr) => {
-        Err(::std::convert::From::from($e))
-    };
 }
 
 pub fn open_database(
     path: Option<String>,
     keyfile: Option<String>,
     use_keyring: bool,
-) -> KdbxResult<Database> {
+) -> Result<Database> {
     let dbfile = path.unwrap();
 
     if !STDIN.is_tty() {
         let pwd = STDIN.read_password();
         let key = CompositeKey::new(Some(pwd), keyfile)?;
-        return Kdbx4::open(dbfile, key);
+        let db = Kdbx4::open(dbfile, key)?;
+        return Ok(db);
     }
 
     let (service, username) = create_from(&dbfile);
-    let keyring = Keyring::new(&service, &username);
+    let keyring = Keyring::new(&service, &username)?;
 
     if use_keyring {
         if let Ok(pwd) = keyring.get_password() {
             debug!("using password from keyring ({}/{})", service, username);
 
             let key = CompositeKey::new(Some(pwd), keyfile.as_ref())?;
-            let db = Kdbx4::open(&dbfile, key);
-            if db.is_ok() {
-                return db;
+            if let Ok(db) = Kdbx4::open(&dbfile, key) {
+                return Ok(db);
             }
 
             warn!("wrong password in the keyring");
@@ -89,7 +83,7 @@ pub fn open_database(
         att -= 1;
 
         if db.is_ok() || att == 0 {
-            break db;
+            break db.map_err(From::from);
         }
 
         wout!("{} attempt(s) left.", att);
@@ -156,7 +150,7 @@ pub fn skim<'a>(
     }
 }
 
-pub fn set_clipboard(val: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn set_clipboard(val: Option<String>) -> Result<()> {
     ClipboardProvider::new()
         .and_then(|mut ctx: ClipboardContext| ctx.set_contents(val.unwrap_or_default()))
         .map_err(|e| {

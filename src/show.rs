@@ -1,6 +1,6 @@
-use crate::{utils, Args, CliResult};
+use crate::{utils, Args, Result};
 
-pub(super) fn run(args: Args) -> CliResult {
+pub(super) fn run(args: Args) -> Result<()> {
     let db = utils::open_database(
         args.flag_database,
         args.flag_key_file,

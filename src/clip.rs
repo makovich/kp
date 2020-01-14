@@ -1,11 +1,11 @@
-use crate::{utils, Args, CliResult, CANCEL, CANCEL_RQ_FREQ, STDIN};
+use crate::{utils, Args, Result, CANCEL, CANCEL_RQ_FREQ, STDIN};
 
 use log::*;
 
 use std::thread;
 use std::time;
 
-pub(super) fn run(args: Args) -> CliResult {
+pub(super) fn run(args: Args) -> Result<()> {
     let db = utils::open_database(
         args.flag_database,
         args.flag_key_file,
@@ -38,7 +38,7 @@ pub(super) fn run(args: Args) -> CliResult {
     Ok(())
 }
 
-fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> CliResult {
+fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> Result<()> {
     let pwd = entry.password()?;
 
     if utils::set_clipboard(Some(pwd)).is_err() {
