@@ -229,8 +229,8 @@ impl<'de> Visitor<'de> for CommandVisitor {
         E: Error,
     {
         Ok(match &*s.to_lowercase() {
-            "clip" => Command::Clip,
-            "show" => Command::Show,
+            "clip" | "c" => Command::Clip,
+            "show" | "s" => Command::Show,
             cmd => Command::Unknown(cmd.to_owned()),
         })
     }
