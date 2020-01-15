@@ -46,7 +46,7 @@ pub fn open_database(
 
     if !is_tty(io::stdin()) {
         let pwd = STDIN.read_password();
-        let key = CompositeKey::new(Some(pwd), keyfile)?;
+        let key = CompositeKey::new(Some(pwd.as_ref()), keyfile)?;
         let db = Kdbx4::open(dbfile, key)?;
         return Ok(db);
     }
@@ -58,7 +58,7 @@ pub fn open_database(
         if let Ok(pwd) = keyring.get_password() {
             debug!("using password from keyring ({}/{})", service, username);
 
-            let key = CompositeKey::new(Some(pwd), keyfile.as_ref())?;
+            let key = CompositeKey::new(Some(pwd.as_ref()), keyfile.as_ref())?;
             if let Ok(db) = Kdbx4::open(&dbfile, key) {
                 return Ok(db);
             }
@@ -73,7 +73,7 @@ pub fn open_database(
         put!("Password:");
 
         let pwd = STDIN.read_password();
-        let key = CompositeKey::new(Some(&pwd), keyfile.as_ref())?;
+        let key = CompositeKey::new(Some(pwd.as_ref()), keyfile.as_ref())?;
         let db = Kdbx4::open(&dbfile, key);
 
         if db.is_ok() {
