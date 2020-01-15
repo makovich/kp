@@ -1,12 +1,13 @@
-use crate::{utils, Args, Result, CANCEL, CANCEL_RQ_FREQ, STDIN};
+use crate::{utils::*, Args, Result, CANCEL, CANCEL_RQ_FREQ};
 
 use log::*;
 
+use std::io;
 use std::thread;
 use std::time;
 
 pub(super) fn run(args: Args) -> Result<()> {
-    let db = utils::open_database(
+    let db = open_database(
         args.flag_database,
         args.flag_key_file,
         args.flag_use_keyring,
@@ -16,22 +17,24 @@ pub(super) fn run(args: Args) -> Result<()> {
 
     if let Some(query) = query {
         if let [entry] = db.find(query).as_slice() {
-            if STDIN.is_tty() {
-                return clip(entry, args.flag_timeout);
-            } else {
+            // Print password to stdout when pipe used
+            // e.g. `kp clip example.com | cat`
+            if !is_tty(io::stdout()) {
                 put!("{}", entry.password()?);
                 return Ok(());
             }
+
+            return clip(entry, args.flag_timeout);
         }
     }
 
     // If more than a single match has been found and stdout is not a TTY
     // than it is not possible to pick the right entry without user's interaction
-    if !STDIN.is_tty() {
+    if !is_tty(io::stdout()) {
         return Err(format!("No single match for {}.", query.unwrap_or("[empty]")).into());
     }
 
-    if let Some(entry) = utils::skim(&db.entries(), query, args.flag_no_group) {
+    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group) {
         clip(entry, args.flag_timeout)?
     }
 
@@ -41,7 +44,7 @@ pub(super) fn run(args: Args) -> Result<()> {
 fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> Result<()> {
     let pwd = entry.password()?;
 
-    if utils::set_clipboard(Some(pwd)).is_err() {
+    if set_clipboard(Some(pwd)).is_err() {
         return Err("Could not copy to the clipboard. Try to use standard out, i.e. \"kp clip example.com | cat\".".into());
     }
 
@@ -66,7 +69,7 @@ fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> Result<()> {
         ticks -= 1;
     }
 
-    let _ = utils::set_clipboard(None);
+    let _ = set_clipboard(None);
     wout!("{:50}", "Wiped out");
 
     return Ok(());

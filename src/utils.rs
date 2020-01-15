@@ -8,6 +8,8 @@ use skim::{Skim, SkimOptions};
 
 use log::*;
 
+use std::io;
+
 #[macro_export]
 macro_rules! put {
     ($($arg:tt)*) => {
@@ -42,7 +44,7 @@ pub fn open_database(
 ) -> Result<Database> {
     let dbfile = path.unwrap();
 
-    if !STDIN.is_tty() {
+    if !is_tty(io::stdin()) {
         let pwd = STDIN.read_password();
         let key = CompositeKey::new(Some(pwd), keyfile)?;
         let db = Kdbx4::open(dbfile, key)?;
@@ -157,4 +159,8 @@ pub fn set_clipboard(val: Option<String>) -> Result<()> {
             warn!("could not set the clipboard: {}", e);
             e
         })
+}
+
+pub fn is_tty(fd: impl std::os::unix::io::AsRawFd) -> bool {
+    unsafe { ::libc::isatty(fd.as_raw_fd()) == 1 }
 }

@@ -1,7 +1,7 @@
-use crate::{utils, Args, Result};
+use crate::{utils::*, Args, Result};
 
 pub(super) fn run(args: Args) -> Result<()> {
-    let db = utils::open_database(
+    let db = open_database(
         args.flag_database,
         args.flag_key_file,
         args.flag_use_keyring,
@@ -18,7 +18,7 @@ pub(super) fn run(args: Args) -> Result<()> {
         }
     }
 
-    if let Some(entry) = utils::skim(&db.entries(), query, args.flag_no_group) {
+    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group) {
         wout!("-----");
         put!("{}", entry);
         wout!("-----");

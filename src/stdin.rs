@@ -23,10 +23,6 @@ impl Stdin {
         })
     }
 
-    pub fn is_tty(&self) -> bool {
-        self.0.is_some()
-    }
-
     pub fn read_password(&self) -> Pwd {
         let pwd = read_password(self.0).unwrap().into();
         self.reset_tty();
