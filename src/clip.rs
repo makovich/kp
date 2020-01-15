@@ -45,7 +45,11 @@ fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> Result<()> {
     let pwd = entry.password()?;
 
     if set_clipboard(Some(pwd)).is_err() {
-        return Err("Could not copy to the clipboard. Try to use standard out, i.e. \"kp clip example.com | cat\".".into());
+        return Err(format!(
+            "Clipboard unavailable. Try use STDOUT, i.e. `kp clip '{}' | cat`.",
+            entry.title()
+        )
+        .into());
     }
 
     if timeout.is_none() {
