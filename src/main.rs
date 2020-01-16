@@ -38,6 +38,7 @@ Options:
     -d, --database <file>       KDBX file path.
     -k, --key-file <keyfile>    Path to the key file unlocking the database.
     -p, --use-keyring           Store password for the database in the OS's keyring.
+    -P, --remove-key            Remove database's password from OS's keyring and exit.
     -G, --no-group              Show entries without group(s).
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
                                 Default to DEFAULT_TIMEOUT seconds. 0 means no clean-up.
@@ -108,6 +109,7 @@ struct Args {
     flag_timeout: Option<u8>,
     flag_no_group: bool,
     flag_use_keyring: bool,
+    flag_remove_key: bool,
     flag_database: Option<PathBuf>,
     flag_key_file: Option<PathBuf>,
     flag_help: bool,
@@ -183,6 +185,18 @@ fn get_args() -> Args {
         werr!("No database file were found. Use `--help` to get more info.");
         process::exit(1);
     });
+
+    if cmd.flag_remove_key {
+        let dbfile = cmd.flag_database.as_deref().unwrap();
+
+        if let Ok(keyring) = keyring::Keyring::from_db_path(dbfile) {
+            if let Err(msg) = keyring.delete_password() {
+                werr!("No key removed for `{}`. {}", dbfile.to_string_lossy(), msg);
+            }
+        }
+
+        process::exit(0);
+    }
 
     debug!("merged: {:#?}", cmd);
     cmd
