@@ -2,8 +2,8 @@ use crate::{utils::*, Args, Result};
 
 pub(super) fn run(args: Args) -> Result<()> {
     let db = open_database(
-        args.flag_database,
-        args.flag_key_file,
+        args.flag_database.as_deref().unwrap(),
+        args.flag_key_file.as_deref(),
         args.flag_use_keyring,
     )?;
 

@@ -13,7 +13,7 @@ use serde_derive::Deserialize;
 
 use log::*;
 
-use std::{env, error, fmt, process, result, sync::atomic, thread, time};
+use std::{env, error, fmt, path::PathBuf, process, result, sync::atomic, thread, time};
 
 const DEFAULT_TIMEOUT: u8 = 5; // 5 seconds
 const CANCEL_RQ_FREQ: u64 = 10; // ten times in a second
@@ -108,8 +108,8 @@ struct Args {
     flag_timeout: Option<u8>,
     flag_no_group: bool,
     flag_use_keyring: bool,
-    flag_database: Option<String>,
-    flag_key_file: Option<String>,
+    flag_database: Option<PathBuf>,
+    flag_key_file: Option<PathBuf>,
     flag_help: bool,
     flag_version: bool,
 }
@@ -180,7 +180,7 @@ fn get_args() -> Args {
     cmd.flag_no_group |= env.flag_no_group;
     cmd.flag_key_file = cmd.flag_key_file.or(env.flag_key_file);
     cmd.flag_database = cmd.flag_database.or(env.flag_database).or_else(|| {
-        werr!("No database file path were not found. Use `--help` to get more info.");
+        werr!("No database file were found. Use `--help` to get more info.");
         process::exit(1);
     });
 

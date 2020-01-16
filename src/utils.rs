@@ -9,6 +9,7 @@ use skim::{Skim, SkimOptions};
 use log::*;
 
 use std::io;
+use std::path::Path;
 
 #[macro_export]
 macro_rules! put {
@@ -37,29 +38,22 @@ macro_rules! werr {
     });
 }
 
-pub fn open_database(
-    path: Option<String>,
-    keyfile: Option<String>,
-    use_keyring: bool,
-) -> Result<Database> {
-    let dbfile = path.unwrap();
-
+pub fn open_database(dbfile: &Path, keyfile: Option<&Path>, use_keyring: bool) -> Result<Database> {
     if !is_tty(io::stdin()) {
         let pwd = STDIN.read_password();
-        let key = CompositeKey::new(Some(pwd.as_ref()), keyfile)?;
+        let key = CompositeKey::new(Some(&pwd), keyfile)?;
         let db = Kdbx4::open(dbfile, key)?;
         return Ok(db);
     }
 
-    let (service, username) = create_from(&dbfile);
-    let keyring = Keyring::new(&service, &username)?;
+    let keyring = Keyring::from_db_path(dbfile)?;
 
     if use_keyring {
         if let Ok(pwd) = keyring.get_password() {
-            debug!("using password from keyring ({}/{})", service, username);
+            debug!("using password from keyring ({})", keyring);
 
-            let key = CompositeKey::new(Some(pwd.as_ref()), keyfile.as_ref())?;
-            if let Ok(db) = Kdbx4::open(&dbfile, key) {
+            let key = CompositeKey::new(Some(&pwd), keyfile)?;
+            if let Ok(db) = Kdbx4::open(dbfile, key) {
                 return Ok(db);
             }
 
@@ -73,11 +67,11 @@ pub fn open_database(
         put!("Password:");
 
         let pwd = STDIN.read_password();
-        let key = CompositeKey::new(Some(pwd.as_ref()), keyfile.as_ref())?;
-        let db = Kdbx4::open(&dbfile, key);
+        let key = CompositeKey::new(Some(&pwd), keyfile)?;
+        let db = Kdbx4::open(dbfile, key);
 
         if db.is_ok() {
-            if use_keyring && keyring.set_password(pwd.as_ref()).is_err() {
+            if use_keyring && keyring.set_password(&pwd).is_err() {
                 warn!("unable to store the password in keyring");
             }
         }
@@ -90,22 +84,6 @@ pub fn open_database(
 
         wout!("{} attempt(s) left.", att);
     }
-}
-
-fn create_from(filename: &str) -> (String, String) {
-    let service = format!("{}.keepass.cli.tool", crate::BIN_NAME);
-    let username = format!("{}", hash(filename));
-
-    (service, username)
-}
-
-fn hash(data: &str) -> u64 {
-    use std::ops::BitXor;
-
-    // djb2 hash function
-    data.as_bytes()
-        .iter()
-        .fold(1153, |acc, &chr| acc.wrapping_mul(33).bitxor(chr as u64))
 }
 
 pub fn skim<'a>(

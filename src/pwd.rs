@@ -1,6 +1,6 @@
 use log::*;
 
-use std::{ptr, sync::atomic};
+use std::{ops::Deref, ptr, sync::atomic};
 
 pub struct Pwd(String);
 
@@ -10,8 +10,10 @@ impl From<String> for Pwd {
     }
 }
 
-impl AsRef<str> for Pwd {
-    fn as_ref(&self) -> &str {
+impl Deref for Pwd {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
         self.0.as_ref()
     }
 }
