@@ -103,9 +103,9 @@ impl Keyring {
     pub fn get_password(&self) -> Result<Pwd, String> {
         const KEYCTL_READ: c_int = 11;
 
-        let pwd = unsafe {
-            let err = Err("no key found in keyring".to_owned());
+        info!("keyctl key decription: {:?}", self.desc);
 
+        let pwd = unsafe {
             let key_id = match syscall(
                 SYS_request_key,
                 b"user\0", // type for user-defined keyrings
@@ -113,28 +113,20 @@ impl Keyring {
                 ptr::null::<c_char>(),
                 0,
             ) {
-                -1 => {
-                    info!("keyctl key decription: {:?}", self.desc);
-                    info!("errno: {:?}", io::Error::last_os_error());
-                    return err;
-                }
-                val => val,
+                -1 => return Err(format!("{}", io::Error::last_os_error())),
+                id => id,
             };
 
             let data_len = match syscall(SYS_keyctl, KEYCTL_READ, key_id, ptr::null::<c_char>(), 0)
             {
-                -1 => {
-                    info!("errno: {:?}", io::Error::last_os_error());
-                    return err;
-                }
-                val => val,
+                -1 => return Err(format!("{}", io::Error::last_os_error())),
+                ln => ln,
             };
 
             let mut data = vec![0u8; data_len as usize];
 
             if -1 == syscall(SYS_keyctl, KEYCTL_READ, key_id, data.as_mut_ptr(), data_len) {
-                info!("errno: {:?}", io::Error::last_os_error());
-                return err;
+                return Err(format!("{}", io::Error::last_os_error()));
             }
 
             String::from_utf8_unchecked(data)
@@ -145,6 +137,8 @@ impl Keyring {
 
     pub fn set_password(&self, password: &str) -> Result<(), String> {
         const KEY_SPEC_SESSION_KEYRING: c_int = -3;
+
+        info!("keyctl key decription: {:?}", self.desc);
 
         unsafe {
             if -1
@@ -157,9 +151,7 @@ impl Keyring {
                     KEY_SPEC_SESSION_KEYRING,
                 )
             {
-                info!("keyctl key decription: {:?}", self.desc);
-                info!("errno: {:?}", io::Error::last_os_error());
-                return Err("unable to store password in keyring".to_owned());
+                return Err(format!("{}", io::Error::last_os_error()));
             }
         }
 
@@ -169,9 +161,9 @@ impl Keyring {
     pub fn delete_password(&self) -> Result<(), String> {
         const KEYCTL_INVALIDATE: c_int = 21;
 
-        unsafe {
-            let err = Err("unable to remove key from keyring".to_owned());
+        info!("keyctl key decription: {:?}", self.desc);
 
+        unsafe {
             let key_id = match syscall(
                 SYS_request_key,
                 b"user\0", // type for user-defined keyrings
@@ -179,17 +171,12 @@ impl Keyring {
                 ptr::null::<c_char>(),
                 0,
             ) {
-                -1 => {
-                    info!("keyctl key decription: {:?}", self.desc);
-                    info!("errno: {:?}", io::Error::last_os_error());
-                    return err;
-                }
-                val => val,
+                -1 => return Err(format!("{}", io::Error::last_os_error())),
+                id => id,
             };
 
             if -1 == syscall(SYS_keyctl, KEYCTL_INVALIDATE, key_id) {
-                info!("errno: {:?}", io::Error::last_os_error());
-                return err;
+                return Err(format!("{}", io::Error::last_os_error()));
             }
         }
 
