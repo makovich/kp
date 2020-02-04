@@ -189,7 +189,7 @@ fn get_args() -> Args {
     if cmd.flag_remove_key {
         let dbfile = cmd.flag_database.as_deref().unwrap();
 
-        if let Ok(keyring) = keyring::Keyring::from_db_path(dbfile) {
+        if let Some(keyring) = keyring::Keyring::from_db_path(dbfile) {
             if let Err(msg) = keyring.delete_password() {
                 werr!("No key removed for `{}`. {}", dbfile.to_string_lossy(), msg);
             }

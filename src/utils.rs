@@ -39,6 +39,27 @@ macro_rules! werr {
 }
 
 pub fn open_database(dbfile: &Path, keyfile: Option<&Path>, use_keyring: bool) -> Result<Database> {
+    let keyring = if use_keyring {
+        Keyring::from_db_path(dbfile).map(|k| {
+            debug!("keyring: {}", k);
+            k
+        })
+    } else {
+        None
+    };
+
+    // Try to open DB with a key from keyring
+    if let Some(Ok(pwd)) = keyring.as_ref().map(|k| k.get_password()) {
+        let key = CompositeKey::new(Some(&pwd), keyfile)?;
+        if let Ok(db) = Kdbx4::open(dbfile, key) {
+            return Ok(db);
+        }
+
+        warn!("removing wrong password in the keyring");
+        let _ = keyring.as_ref().map(|k| k.delete_password());
+    }
+
+    // Try read password from pipe
     if !is_tty(io::stdin()) {
         let pwd = STDIN.read_password();
         let key = CompositeKey::new(Some(&pwd), keyfile)?;
@@ -46,22 +67,7 @@ pub fn open_database(dbfile: &Path, keyfile: Option<&Path>, use_keyring: bool) -
         return Ok(db);
     }
 
-    let keyring = Keyring::from_db_path(dbfile)?;
-
-    if use_keyring {
-        if let Ok(pwd) = keyring.get_password() {
-            debug!("using password from keyring ({})", keyring);
-
-            let key = CompositeKey::new(Some(&pwd), keyfile)?;
-            if let Ok(db) = Kdbx4::open(dbfile, key) {
-                return Ok(db);
-            }
-
-            warn!("wrong password in the keyring");
-            let _ = keyring.delete_password();
-        }
-    }
-
+    // Allow multiple attempts to enter the password from TTY
     let mut att = 3;
     loop {
         put!("Password:");
@@ -70,10 +76,9 @@ pub fn open_database(dbfile: &Path, keyfile: Option<&Path>, use_keyring: bool) -
         let key = CompositeKey::new(Some(&pwd), keyfile)?;
         let db = Kdbx4::open(dbfile, key);
 
+        // If opened successfully store the password
         if db.is_ok() {
-            if use_keyring && keyring.set_password(&pwd).is_err() {
-                warn!("unable to store the password in keyring");
-            }
+            let _ = keyring.as_ref().map(|k| k.set_password(&pwd));
         }
 
         att -= 1;

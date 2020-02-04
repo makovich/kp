@@ -1,12 +1,20 @@
 use crate::pwd::Pwd;
 
+use log::*;
+
 use std::fmt;
 use std::path::Path;
 
 impl Keyring {
-    pub fn from_db_path(file: impl AsRef<Path>) -> Result<Self, String> {
+    pub fn from_db_path(file: impl AsRef<Path>) -> Option<Self> {
         let (service, username) = create_from(&file.as_ref().to_string_lossy());
+
         Keyring::new(service, username)
+            .map(Some)
+            .unwrap_or_else(|e| {
+                warn!("can't init keyring ({})", e);
+                None
+            })
     }
 }
 
