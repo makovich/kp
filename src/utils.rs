@@ -2,6 +2,7 @@ use crate::keyring::Keyring;
 use crate::Result;
 use crate::STDIN;
 
+#[cfg(feature = "clipboard")]
 use clipboard::{ClipboardContext, ClipboardProvider};
 use kdbx4::{CompositeKey, Database, Entry, Kdbx4};
 use skim::{Skim, SkimOptions};
@@ -135,6 +136,7 @@ pub fn skim<'a>(
     }
 }
 
+#[cfg(feature = "clipboard")]
 pub fn set_clipboard(val: Option<String>) -> Result<()> {
     ClipboardProvider::new()
         .and_then(|mut ctx: ClipboardContext| ctx.set_contents(val.unwrap_or_default()))
@@ -142,6 +144,11 @@ pub fn set_clipboard(val: Option<String>) -> Result<()> {
             warn!("could not set the clipboard: {}", e);
             e
         })
+}
+
+#[cfg(not(feature = "clipboard"))]
+pub fn set_clipboard(_: Option<String>) -> Result<()> {
+    Err("Feature clipboard is not available.".into())
 }
 
 pub fn is_tty(fd: impl std::os::unix::io::AsRawFd) -> bool {
