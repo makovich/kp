@@ -3,6 +3,17 @@ name = "kp"
 version = "0.1.0"
 authors = ["paul <paul@makovi.ch>"]
 edition = "2018"
+description = "KeePass CLI"
+documentation = "https://github.com/makovich/kp"
+homepage = "https://github.com/makovich/kp"
+repository = "https://github.com/makovich/kp"
+readme = "README.md"
+keywords = ["keepass", "kdbx4", "password"]
+categories = ["command-line-utilities"]
+license = "Unlicense OR MIT"
+
+[badges]
+travis-ci = { repository = "makovich/kp" }
 
 [features]
 default = ["clipboard"]
