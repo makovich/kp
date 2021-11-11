@@ -34,7 +34,7 @@ Commands:
     clip     Copy password and clear clipboard after specified amount of time.
              This is default command if no other provided.
 
-    show     Display entry's info.
+    info     Display entry's info. Alias `show`.
 
 Options:
     -d, --database <file>       KDBX file path.
@@ -58,7 +58,7 @@ Examples:
       export KP_DEFAULTS="-d$HOME/my.kdbx -k$HOME/.secret -pGt7"
 
     Display selector and then print entry's info:
-      $ kp show
+      $ kp info
 
     Copy password if only single entry found otherwise display selector:
       $ kp clip gmail

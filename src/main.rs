@@ -32,7 +32,7 @@ Commands:
     clip     Copy password and clear clipboard after specified amount of time.
              This is default command if no other provided.
 
-    show     Display entry's info.
+    info     Display entry's info. Alias `show`.
 
 Options:
     -d, --database <file>       KDBX file path.
@@ -250,7 +250,7 @@ impl<'de> Visitor<'de> for CommandVisitor {
     {
         Ok(match &*s.to_lowercase() {
             "clip" | "c" => Command::Clip,
-            "show" | "s" => Command::Show,
+            "show" | "s" | "info" | "i" => Command::Show,
             cmd => Command::Unknown(cmd.to_owned()),
         })
     }
