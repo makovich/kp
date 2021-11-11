@@ -34,7 +34,7 @@ pub(super) fn run(args: Args) -> Result<()> {
         return Err(format!("No single match for {}.", query.unwrap_or("[empty]")).into());
     }
 
-    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group) {
+    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group, args.flag_preview) {
         clip(entry, args.flag_timeout)?
     }
 

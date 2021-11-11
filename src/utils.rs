@@ -9,6 +9,7 @@ use skim::prelude::*;
 
 use log::*;
 
+use std::borrow::Cow;
 use std::io;
 use std::path::Path;
 
@@ -96,6 +97,7 @@ pub fn skim<'a>(
     entries: &'a [Entry<'a>],
     query: Option<&'a str>,
     hide_groups: bool,
+    show_preview: bool,
 ) -> Option<&'a Entry<'a>> {
     let opts = SkimOptionsBuilder::default()
         .multi(false)
@@ -108,6 +110,8 @@ pub fn skim<'a>(
             "ctrl-r:ignore", // rotate mode
         ])
         .delimiter(if hide_groups { None } else { Some("/") })
+        .preview(if show_preview { Some("") } else { None })
+        .preview_window(Some("right:65%"))
         .build()
         .expect("well formed SkimOptions");
 
@@ -122,7 +126,14 @@ pub fn skim<'a>(
             } else {
                 format!("/{}/{}", e.group(), e.title())
             };
-            EntryItem { idx, title }
+
+            let props = if show_preview {
+                Some(format!("{}", e))
+            } else {
+                None
+            };
+
+            EntryItem { idx, title, props }
         })
         .for_each(|item| tx.send(Arc::new(item)).unwrap());
 
@@ -147,11 +158,20 @@ pub fn skim<'a>(
 struct EntryItem {
     idx: usize,
     title: String,
+    props: Option<String>,
 }
 
 impl SkimItem for EntryItem {
     fn text(&self) -> Cow<str> {
         Cow::Borrowed(&self.title)
+    }
+
+    fn preview(&self, _: PreviewContext) -> ItemPreview {
+        if let Some(props) = &self.props {
+            ItemPreview::Text(props.to_owned())
+        } else {
+            ItemPreview::Global
+        }
     }
 }
 

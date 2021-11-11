@@ -40,6 +40,7 @@ Options:
     -p, --use-keyring           Store password for the database in the OS's keyring.
     -P, --remove-key            Remove database's password from OS's keyring and exit.
     -G, --no-group              Show entries without group(s).
+    -v, --preview               Preview entry during picking.
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
                                 Default to DEFAULT_TIMEOUT seconds. 0 means no clean-up.
     -h, --help
@@ -108,6 +109,7 @@ struct Args {
     arg_entry: Option<String>,
     flag_timeout: Option<u8>,
     flag_no_group: bool,
+    flag_preview: bool,
     flag_use_keyring: bool,
     flag_remove_key: bool,
     flag_database: Option<PathBuf>,
@@ -180,6 +182,7 @@ fn get_args() -> Args {
 
     cmd.flag_use_keyring |= env.flag_use_keyring;
     cmd.flag_no_group |= env.flag_no_group;
+    cmd.flag_preview |= env.flag_preview;
     cmd.flag_key_file = cmd.flag_key_file.or(env.flag_key_file);
     cmd.flag_database = cmd.flag_database.or(env.flag_database).or_else(|| {
         werr!("No database file were found. Use `--help` to get more info.");

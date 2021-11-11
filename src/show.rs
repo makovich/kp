@@ -18,7 +18,7 @@ pub(super) fn run(args: Args) -> Result<()> {
         }
     }
 
-    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group) {
+    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group, args.flag_preview) {
         wout!("-----");
         put!("{}", entry);
         wout!("-----");
