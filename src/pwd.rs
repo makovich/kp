@@ -20,7 +20,7 @@ impl Deref for Pwd {
 
 impl AsRef<str> for Pwd {
     fn as_ref(&self) -> &str {
-        &self
+        self
     }
 }
 

@@ -82,5 +82,5 @@ fn clip<'a>(entry: &'a kdbx4::Entry<'a>, timeout: Option<u8>) -> Result<()> {
     let _ = set_clipboard(None);
     wout!("{:50}", "Wiped out");
 
-    return Ok(());
+    Ok(())
 }

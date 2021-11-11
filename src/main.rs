@@ -74,7 +74,7 @@ Examples:
 ";
 
 static CANCEL: atomic::AtomicBool = atomic::AtomicBool::new(false);
-static STDIN: Lazy<stdin::Stdin> = Lazy::new(|| stdin::Stdin::new());
+static STDIN: Lazy<stdin::Stdin> = Lazy::new(stdin::Stdin::new);
 
 type Result<T> = result::Result<T, Box<dyn error::Error>>;
 
