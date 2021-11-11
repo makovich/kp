@@ -98,12 +98,16 @@ pub fn skim<'a>(
     query: Option<&'a str>,
     hide_groups: bool,
     show_preview: bool,
+    full_screen: bool,
 ) -> Option<&'a Entry<'a>> {
     let opts = SkimOptionsBuilder::default()
         .multi(false)
         .reverse(true)
         .query(query)
+        .header(if full_screen { Some(" ") } else { None }) // separate counters and entries with a line
+        .color(Some("16")) // 16 colors scheme
         .height(Some("7"))
+        .no_height(full_screen)
         .bind(vec![
             "ctrl-q:ignore", // toggle interactive
             "ctrl-l:ignore", // clear screen

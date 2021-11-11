@@ -18,7 +18,13 @@ pub(super) fn run(args: Args) -> Result<()> {
         }
     }
 
-    if let Some(entry) = skim(&db.entries(), query, args.flag_no_group, args.flag_preview) {
+    if let Some(entry) = skim(
+        &db.entries(),
+        query,
+        args.flag_no_group,
+        args.flag_preview,
+        args.flag_full_screen,
+    ) {
         wout!("-----");
         put!("{}", entry);
         wout!("-----");
