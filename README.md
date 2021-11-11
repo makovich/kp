@@ -6,9 +6,10 @@
 * macOS, Linux
 * [KDBX v4](https://keepass.info/help/kb/kdbx_4.html)
 * fuzzy matching prompt with [skim](https://github.com/lotabout/skim/)
+* as well as sidewise preview
 * support system clipboard (macOS, X11 in Linux)
 * master password store/load from [Keychain](https://en.wikipedia.org/wiki/Keychain_(software)) and [keyrings](http://man7.org/linux/man-pages/man7/keyrings.7.html)
-* easy scripting (e.g. `BORG_PASSCOMMAND="kp homebackup"`)
+* easy scripting (e.g. `RESTIC_PASSWORD_COMMAND="kp homebackup"`)
 
 ## Install
 
@@ -23,7 +24,7 @@ $ cargo install kp --no-default-features
 ## Usage
 ```
 $ kp --help
-kp 0.1.0
+kp 0.2.0
     KeePass KDBX4 password reader.
 
 Usage:
@@ -42,6 +43,8 @@ Options:
     -p, --use-keyring           Store password for the database in the OS's keyring.
     -P, --remove-key            Remove database's password from OS's keyring and exit.
     -G, --no-group              Show entries without group(s).
+    -v, --preview               Preview entry during picking.
+    -f, --full-screen           Use all available screen for picker.
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
                                 Default to 15 seconds. 0 means no clean-up.
     -h, --help
