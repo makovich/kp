@@ -43,7 +43,7 @@ Options:
     -P, --remove-key            Remove database's password from OS's keyring and exit.
     -G, --no-group              Show entries without group(s).
     -t, --timeout <seconds>     Timeout in seconds before clearing the clipboard.
-                                Default to 5 seconds. 0 means no clean-up.
+                                Default to 15 seconds. 0 means no clean-up.
     -h, --help
     -V, --version
 

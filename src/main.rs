@@ -15,7 +15,7 @@ use log::*;
 
 use std::{env, error, fmt, path::PathBuf, process, result, sync::atomic, thread, time};
 
-const DEFAULT_TIMEOUT: u8 = 5; // 5 seconds
+const DEFAULT_TIMEOUT: u8 = 15; // 15 seconds
 const CANCEL_RQ_FREQ: u64 = 10; // ten times in a second
 
 static BIN_NAME: &str = env!("CARGO_PKG_NAME");
