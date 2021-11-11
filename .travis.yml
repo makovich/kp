@@ -48,7 +48,7 @@ before_install:
 install: skip
 
 script:
-  - cargo rustc --release --target $TARGET $FEATURES -- -Clto -Copt-level=s
+  - cargo rustc --release --target $TARGET $FEATURES -- -Clto -Copt-level=s -Cembed-bitcode=yes
 
 before_deploy:
   # smoke test
